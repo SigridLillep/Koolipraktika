@@ -1,0 +1,43 @@
+- name: Uuenda koigi Linuxi serverite tarkvara
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Uuenda APT cache Ubuntu ja Debian serverites
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Uuenda koik paketid Ubuntu ja Debian serverites
+      ansible.builtin.apt:
+        upgrade: dist
+      when: ansible_os_family == "Debian"
+
+    - name: Uuenda koik paketid CentOS, RHEL ja Rocky serverites
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Kontrolli, kas reboot on Debian-pohistel serveritel vajalik
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required_debian
+      when: ansible_os_family == "Debian"
+
+    - name: Taaskaivita Debian-pohine server, kui vaja
+      ansible.builtin.reboot:
+        msg: "Server taaskaivitatakse parast uuendusi"
+        reboot_timeout: 600
+      when:
+        - ansible_os_family == "Debian"
+        - reboot_required_debian.stat.exists
+
+    - name: Taaskaivita RedHat-pohine server, kui kernel uuendati
+      ansible.builtin.reboot:
+        msg: "Server taaskaivitatakse parast uuendusi"
+        reboot_timeout: 600
+      when: ansible_os_family == "RedHat"
