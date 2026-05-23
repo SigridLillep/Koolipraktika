@@ -1,0 +1,4 @@
+https://vault.local {
+    tls internal
+    reverse_proxy vaultwarden:80
+}
